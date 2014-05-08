@@ -1,20 +1,127 @@
 # Reproducible Research: Peer Assessment 1
 
-
 ## Loading and preprocessing the data
 
+1- Download assessement data file if it's not existed in working directory.
 
+2- Unzip the assessement zip file(activity.zip) into the working directory.
+
+3- load dataset file(activity.csv) into d variable.
+
+```{r}
+
+if(!file.exists("activity.zip")){
+  download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip", destfile="activity.zip", method="curl")  
+}
+
+if(!file.exists("activity.csv")){
+  unzip("activity.zip")
+}
+
+d <- read.csv("activity.csv", header=T)
+```
 
 ## What is mean total number of steps taken per day?
+```{r}
 
+mean_steps <- c()
+median_steps <- c()
+taken_per_day <- c()
+steps <- c()
+interval <- c()
+interval_mean <- c()
+interval_median <- c()
+
+for(a in names(table(d$date))){
+  taken_per_day <- c(taken_per_day, a)
+  steps <- c(steps, sum(d[d$date %in% c(a), "steps"], na.rm=T))
+  mean_steps <- c(mean_steps, mean(d[d$date %in% c(a), "steps"], na.rm=T))
+  median_steps <- c(median_steps, median(d[d$date %in% c(a), "steps"], na.rm=T))
+  interval <- c(interval, sum(d[d$date %in% c(a), "interval"], na.rm=T))
+  interval_mean <- c(interval_mean, mean(d[d$date %in% c(a), "interval"], na.rm=T))
+  interval_median <- c(interval_median, median(d[d$date %in% c(a), "interval"], na.rm=T))
+}
+
+steps_taken_per_day <- data.frame(day=taken_per_day, steps, mean_steps, median_steps, interval, interval_mean, interval_median)
+
+steps_taken_per_day
+
+summary(steps_taken_per_day$steps)
+summary(steps_taken_per_day$mean_steps)
+summary(steps_taken_per_day$median_steps)
+
+plot.new()
+hist(steps_taken_per_day$steps , main="Steps Taken by Day", xlab="days", ylab="steps", breaks=length(steps_taken_per_day$steps), col=rainbow(length(steps_taken_per_day$steps)))
+#hist(steps_taken_per_day$steps , main="Steps Taken by Day", xlab="days", ylab="steps", breaks=length(steps_taken_per_day$steps), col=rainbow(length(steps_taken_per_day$steps)), xaxt="n", yaxt="n")
+#axis(side=1, at=steps_taken_per_day$steps, labels=steps_taken_per_day$day)
+
+# axis at
+#at <- c()
+#for(i in 0:5){
+#  at <- c(at, (round(length(steps_taken_per_day$steps)/5)*i))
+#}
+#labels <- round(seq(from=min(steps_taken_per_day$steps), to=max(steps_taken_per_day$steps), length.out=6))
+#axis(side=2, at=at, labels=labels)
+```
 
 
 ## What is the average daily activity pattern?
-
-
+```{r}
+plot(steps_taken_per_day$mean_steps, type="l", xlab="days", ylab="average daily activity")
+```
 
 ## Imputing missing values
+```{r}
 
+missings_count <- nrow(d[is.na(d$steps), ])
+
+print(paste("Total number of rows with NAs: ", missings_count))
+
+data_with_missings_filled <- d
+
+data_with_missings_filled[is.na(data_with_missings_filled$steps), "steps"] <- seq(missings_count)
+
+
+##########################################################
+mean_steps <- c()
+median_steps <- c()
+taken_per_day <- c()
+steps <- c()
+interval <- c()
+
+for(a in names(table(data_with_missings_filled$date))){
+  taken_per_day <- c(taken_per_day, a)
+  steps <- c(steps, sum(data_with_missings_filled[data_with_missings_filled$date %in% c(a), "steps"], na.rm=T))
+  mean_steps <- c(mean_steps, mean(data_with_missings_filled[data_with_missings_filled$date %in% c(a), "steps"], na.rm=T))
+  median_steps <- c(median_steps, median(data_with_missings_filled[data_with_missings_filled$date %in% c(a), "steps"], na.rm=T))
+  interval <- c(interval, sum(data_with_missings_filled[data_with_missings_filled$date %in% c(a), "interval"], na.rm=T))
+}
+
+missings_filled_per_day <- data.frame(day=taken_per_day, steps, mean_steps, median_steps, interval)
+
+missings_filled_per_day
+
+summary(missings_filled_per_day)
+
+##########################################################
+
+hist(data_with_missings_filled$steps)
+
+```
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+
+missings_filled_per_day$weekday_weekend <- weekdays(as.Date(missings_filled_per_day$day, "%Y-%m-%d")) %in% c("Sunday")
+
+missings_filled_per_day[missings_filled_per_day$weekday_weekend, "weekday_weekend"] <- "weekend"
+missings_filled_per_day[missings_filled_per_day$weekday_weekend == F, "weekday_weekend"] <- "weekday"
+
+missings_filled_per_day
+
+plot.new()
+plot(missings_filled_per_day[missings_filled_per_day$weekday_weekend == "weekend", "steps"], type="l", main="weekend")
+plot(missings_filled_per_day[missings_filled_per_day$weekday_weekend == "weekday", "steps"], type="l", main="weekday")
+```
+
